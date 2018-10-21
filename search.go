@@ -2,7 +2,6 @@ package performance
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -56,28 +55,14 @@ var features = []string{
 
 // Search asks Yahoo for results with the specified search value
 func Search(term string) (SearchResult, error) {
-	// query := strings.Join(searchParams, "&")
-	// url := fmt.Sprintf("%s%s?%s", searchHost, term, query)
 	url := fmt.Sprintf("%s%s", searchHost, term)
-	log.Println(url)
 
 	response, err := http.Get(url)
 	if err != nil {
 		return SearchResult{}, err
 	}
-	defer response.Body.Close()
-
-	// body, err := ioutil.ReadAll(response.Body)
-	// if err != nil {
-	// 	return SearchResult{}, nil
-	// }
 
 	searchResult := SearchResult{}
-	// err = json.Unmarshal(body, &searchResult)
-	// if err != nil {
-	// 	return SearchResult{}, nil
-	// }
-
 	err = readBody(response.Body, &searchResult)
 	if err != nil {
 		return SearchResult{}, err
