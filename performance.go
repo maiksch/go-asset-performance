@@ -2,7 +2,6 @@ package performance
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -37,12 +36,52 @@ type HistoricPoint struct {
 	Price     float64   `json:"price"`
 }
 
-const historicURL = "https://query1.finance.yahoo.com/v7/finance/spark?symbols="
-const historicParams = "range=1mo&interval=1d"
+type TimeUnit string
 
-func GetHistoricData(symbols ...string) ([]HistoricData, error) {
+const (
+	Year  TimeUnit = "y"
+	Month TimeUnit = "mo"
+	Day   TimeUnit = "d"
+)
+
+type HistoricParams struct {
+	Range    Range
+	Interval Interval
+}
+
+type Range struct {
+	Amount   int
+	TimeUnit TimeUnit
+}
+
+type Interval struct {
+	Amount   int
+	TimeUnit TimeUnit
+}
+
+func NewHistoricParams() HistoricParams {
+	return HistoricParams{
+		Range: Range{
+			Amount:   1,
+			TimeUnit: Year,
+		},
+		Interval: Interval{
+			Amount:   1,
+			TimeUnit: Day,
+		},
+	}
+}
+
+func GetHistoricData(params HistoricParams, symbols ...string) ([]HistoricData, error) {
+	if ok := validParams(params); !ok {
+		return []HistoricData{}, fmt.Errorf("Params for fetching of historical data invalid")
+	}
+
+	scope := fmt.Sprintf("range=%d%s", params.Range.Amount, params.Range.TimeUnit)
+	interval := fmt.Sprintf("interval=%d%s", params.Interval.Amount, params.Interval.TimeUnit)
+	historicParams := fmt.Sprintf("%s&%s", scope, interval)
+	historicURL := "https://query1.finance.yahoo.com/v7/finance/spark?symbols="
 	url := fmt.Sprintf("%s%s&%s", historicURL, strings.Join(symbols, ","), historicParams)
-	log.Println(url)
 
 	response, err := http.Get(url)
 	if err != nil {
@@ -58,6 +97,17 @@ func GetHistoricData(symbols ...string) ([]HistoricData, error) {
 	historicData := mapYahooHistoricDataToMyHistoricData(yahooHistoricResult)
 
 	return historicData, nil
+}
+
+func validParams(params HistoricParams) bool {
+	if params.Interval.Amount <= 0 {
+		return false
+	}
+	if params.Range.Amount <= 0 {
+		return false
+	}
+
+	return true
 }
 
 func mapYahooHistoricDataToMyHistoricData(yahoo yahooHistoricResult) []HistoricData {
