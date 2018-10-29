@@ -72,10 +72,14 @@ func NewHistoricParams() HistoricParams {
 	}
 }
 
+var currentInterval Interval
+
 func GetHistoricData(params HistoricParams, symbols ...string) ([]HistoricData, error) {
 	if ok := validParams(params); !ok {
 		return []HistoricData{}, fmt.Errorf("Params for fetching of historical data invalid")
 	}
+
+	currentInterval = params.Interval
 
 	scope := fmt.Sprintf("range=%d%s", params.Range.Amount, params.Range.TimeUnit)
 	interval := fmt.Sprintf("interval=%d%s", params.Interval.Amount, params.Interval.TimeUnit)
@@ -142,5 +146,54 @@ func getHistoricPoints(quotes []float64, timestamps []int64) []HistoricPoint {
 		historicPoints = append(historicPoints, historicPoint)
 	}
 
+	historicPoints = fixMissingHistoricPoints(historicPoints)
+
 	return historicPoints
+}
+
+func fixMissingHistoricPoints(points []HistoricPoint) []HistoricPoint {
+	result := make([]HistoricPoint, 0)
+	result = append(result, points[0])
+
+	for i := 1; i < len(points); i++ {
+		timestamp := points[i-1].Timestamp
+		timestampToCheck := getTimestampToCheck(timestamp)
+		monthIsMissing := timestampToCheck.Before(points[i].Timestamp)
+
+		if monthIsMissing {
+			insertMissingDataPoint(i, timestampToCheck, &result, points[i])
+		}
+
+		result = append(result, points[i])
+	}
+
+	return result
+}
+
+func insertMissingDataPoint(i int, timestamp date.Date, points *[]HistoricPoint, nextPoint HistoricPoint) {
+	newDataPoint := HistoricPoint{
+		Timestamp: timestamp,
+		Price:     guessCorrectPrice(i, *points, nextPoint.Price),
+	}
+	*points = append(*points, newDataPoint)
+}
+
+func getTimestampToCheck(timestamp date.Date) date.Date {
+	if currentInterval.TimeUnit == "mo" {
+		month := time.Month(currentInterval.Amount)
+		firstDayOfNextMonth := date.New(timestamp.Year(), timestamp.Month()+month, 1)
+		lastDayOfNextMonth := firstDayOfNextMonth.AddDate(0, 1, -1)
+		return lastDayOfNextMonth
+	}
+
+	if currentInterval.TimeUnit == "d" {
+		return timestamp.AddDate(0, 0, 1)
+	}
+
+	return date.Today()
+}
+
+func guessCorrectPrice(i int, points []HistoricPoint, nextPrice float64) float64 {
+	previousPrice := points[i-1].Price
+	return (previousPrice + nextPrice) / 2
 }
