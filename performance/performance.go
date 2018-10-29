@@ -38,6 +38,7 @@ type HistoricPoint struct {
 
 type TimeUnit string
 
+//The valid time units for the range and interval request parameters
 const (
 	Year  TimeUnit = "y"
 	Month TimeUnit = "mo"
@@ -59,6 +60,7 @@ type Interval struct {
 	TimeUnit TimeUnit
 }
 
+// NewHistoricParams returns a new HistoricParams struct with a range of 1 year and quote interval of 1 day
 func NewHistoricParams() HistoricParams {
 	return HistoricParams{
 		Range: Range{
@@ -74,6 +76,7 @@ func NewHistoricParams() HistoricParams {
 
 var currentInterval Interval
 
+// GetHistoricData looks up the given sybols in the Yahoo Finance API and returns all the historic quotes for a specified range and interval
 func GetHistoricData(params HistoricParams, symbols ...string) ([]HistoricData, error) {
 	if ok := validParams(params); !ok {
 		return []HistoricData{}, fmt.Errorf("Params for fetching of historical data invalid")

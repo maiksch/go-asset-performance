@@ -36,7 +36,7 @@ type yahooResult struct {
 
 const performanceURL = "https://query1.finance.yahoo.com/v7/finance/quote?symbols="
 
-// GetPerformance asks the Yahoo Finance API for the performance of the given symbols
+// GetValue asks the Yahoo Finance API for the current values of the given symbols
 func GetValue(symbols []string) (ValueResult, error) {
 	joinedSymbols := strings.Join(symbols, ",")
 	url := fmt.Sprintf("%s%s", performanceURL, joinedSymbols)
